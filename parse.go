@@ -34,6 +34,9 @@ func FromString(r io.Reader, chunker string) (Splitter, error) {
 	case strings.HasPrefix(chunker, "rabin"):
 		return parseRabinString(r, chunker)
 
+	case strings.HasPrefix(chunker, "mini"):
+		return parseMiniString(r, chunker)
+
 	default:
 		return nil, fmt.Errorf("unrecognized chunker option: %s", chunker)
 	}
@@ -84,5 +87,27 @@ func parseRabinString(r io.Reader, chunker string) (Splitter, error) {
 		return NewRabinMinMax(r, uint64(min), uint64(avg), uint64(max)), nil
 	default:
 		return nil, errors.New("incorrect format (expected 'rabin' 'rabin-[avg]' or 'rabin-[min]-[avg]-[max]'")
+	}
+}
+
+func parseMiniString(r io.Reader, chunker string) (Splitter, error) {
+	parts := strings.Split(chunker, "-")
+	switch len(parts) {
+	case 1:
+		return DefaultMini(r), nil
+	case 3:
+		miniCount, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, err
+		}
+
+		miniSize, err := strconv.Atoi(parts[2])
+		if err != nil {
+			return nil, err
+		}
+
+		return NewMini(r, DefaultBlockSize, uint32(miniCount), uint32(miniSize)), nil
+	default:
+		return nil, errors.New("incorrect format (expected 'mini' or 'mini-[miniCount]-[miniSize]'")
 	}
 }
